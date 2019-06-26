@@ -1,7 +1,7 @@
 export abstract class UiElementHandler {
     public static signalingSubmit: HTMLElement;
     public static signalingUrl: HTMLInputElement;
-    public static loginNameInput: HTMLInputElement | null;
+    public static loginNameInput: HTMLElement;
     public static loginButton: HTMLElement;
     public static msgInput: HTMLInputElement;
     public static chatbox: HTMLInputElement;
@@ -13,9 +13,8 @@ export abstract class UiElementHandler {
     public static getAllUiElements() {
             UiElementHandler.signalingUrl = document.getElementById("signaling_uri") as HTMLInputElement;
             UiElementHandler.signalingSubmit = document.getElementById("submit_button") as HTMLElement;
-            UiElementHandler.loginNameInput = document.getElementById("login_name") as HTMLInputElement;
-            UiElementHandler.loginButton = document.getElementById("login_button") as HTMLElement;
-            console.log("UI ELEMENT HANDLER LOGIC: " , UiElementHandler.loginButton);
+            UiElementHandler.loginNameInput = document.getElementById("login_name") as HTMLElement;
+            UiElementHandler.loginButton = document.getElementById("loginButton") as HTMLElement;
             UiElementHandler.msgInput = document.getElementById("msgInput") as HTMLInputElement;
             UiElementHandler.chatbox = document.getElementById("chatbox") as HTMLInputElement;
             UiElementHandler.sendMsgButton = document.getElementById("sendMessage") as HTMLElement;

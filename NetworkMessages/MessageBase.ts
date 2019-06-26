@@ -1,8 +1,6 @@
-namespace NetworkMessages {
-    export interface MessageBase {
+export interface MessageBase {
 
         readonly messageType: MESSAGE_TYPE;
 
     }
 
-}

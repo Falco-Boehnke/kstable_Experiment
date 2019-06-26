@@ -5,6 +5,7 @@ enum MESSAGE_TYPE {
     RTC_ANSWER = "answer",
     RTC_CANDIDATE = "candidate",
 }
-enum TEST_ENUM {
+
+enum TEST_ENUM{
     SERIOUSLY = "wtf",
 }

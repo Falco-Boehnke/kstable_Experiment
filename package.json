@@ -4,7 +4,7 @@
   "description": "fundamentals for testing webrtc in electron",
   "main": "index.js",
   "scripts": {
-    "start": "electron ."
+    "start": "node ."
   },
   "author": "",
   "license": "ISC",

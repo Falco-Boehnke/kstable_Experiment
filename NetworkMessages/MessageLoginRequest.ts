@@ -1,7 +1,6 @@
-/// <reference path = "./MessageBase.ts" />
-namespace NetworkMessages {
+import { MessageBase } from "./MessageBase";
 
-    export class LoginRequest implements MessageBase {
+export class MessageLoginRequest implements MessageBase {
 
         public messageType: MESSAGE_TYPE = MESSAGE_TYPE.LOGIN;
         public loginUserName: string = "";
@@ -11,4 +10,3 @@ namespace NetworkMessages {
         }
 
     }
-}
