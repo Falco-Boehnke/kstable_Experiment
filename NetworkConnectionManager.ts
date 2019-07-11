@@ -11,7 +11,7 @@ export class NetworkConnectionManager {
     public initiatiorChannel!: RTCDataChannel;
 
     public receiverConnection: RTCPeerConnection;
-    // public localClientId: string;
+    public localClientId: string;
      public localUserName: string;
     // public connection: RTCPeerConnection;
     // public remoteConnection: RTCPeerConnection | null;
@@ -46,7 +46,7 @@ export class NetworkConnectionManager {
         this.receiverConnection = new RTCPeerConnection(this.configuration);
         this.receiverConnection.addEventListener("datachannel", receivingDataChannel);
         this.localUserName = "";
-        // this.localClientId = "undefined";
+        this.localClientId = "undefined";
         // this.connection = new RTCPeerConnection(this.configuration);
         // this.remoteConnection = null;
         // this.userNameLocalIsConnectedTo = "";
@@ -63,6 +63,11 @@ export class NetworkConnectionManager {
 
         this.initiatiorChannel.addEventListener("open", handleInitiatorChannelStatusChange);
         this.initiatiorChannel.addEventListener("close", handleInitiatorChannelStatusChange);
+
+        this.initiateConnection.createOffer()
+        .then(offer => this.initiateConnection.setLocalDescription(offer))
+        .then(() => this.sendMessage(new NetworkMessages.RtcOffer(this.localClientId, UiElementHandler.usernameToConnectTo.value, this.initiateConnection.localDescription )));
+
     }
 
     public addUiListeners = (): void => {
