@@ -7,12 +7,19 @@ import * as NetworkMessages from "./NetworkMessages";
 export class NetworkConnectionManager {
 
     public ws: WebSocket;
-    public localClientId: string;
-    public localUserName: string;
-    public connection: RTCPeerConnection;
-    public remoteConnection: RTCPeerConnection | null;
-    public userNameLocalIsConnectedTo: string;
-    public peerConnectionToChosenPeer: RTCDataChannel | undefined;
+    public initiateConnection: RTCPeerConnection;
+    public initiatiorChannel!: RTCDataChannel;
+
+    public receiverConnection: RTCPeerConnection;
+    // public localClientId: string;
+     public localUserName: string;
+    // public connection: RTCPeerConnection;
+    // public remoteConnection: RTCPeerConnection | null;
+    // public userNameLocalIsConnectedTo: string;
+    // public peerConnectionToChosenPeer: any;
+
+    // public datachannel: RTCDataChannel | undefined;
+    public isInitiator: boolean;
 
     // tslint:disable-next-line: typedef
     public configuration = {
@@ -21,7 +28,6 @@ export class NetworkConnectionManager {
             { urls: "stun:stun.example.com" }
         ]
     };
-    private isNegotiating: boolean = false;
     // More info from here https://developer.mozilla.org/en-US/docs/Web/API/RTCConfiguration
     //     var configuration = { iceServers: [{
     //         urls: "stun:stun.services.mozilla.com",
@@ -35,24 +41,37 @@ export class NetworkConnectionManager {
 
     constructor() {
         this.ws = new WebSocket("ws://localhost:8080");
+        this.initiateConnection = new RTCPeerConnection(this.configuration);
+
+        this.receiverConnection = new RTCPeerConnection(this.configuration);
+        this.receiverConnection.addEventListener("datachannel", receivingDataChannel);
         this.localUserName = "";
-        this.localClientId = "undefined";
-        this.connection = new RTCPeerConnection(this.configuration);
-        this.remoteConnection = null;
-        this.userNameLocalIsConnectedTo = "";
-        this.peerConnectionToChosenPeer = undefined;
+        // this.localClientId = "undefined";
+        // this.connection = new RTCPeerConnection(this.configuration);
+        // this.remoteConnection = null;
+        // this.userNameLocalIsConnectedTo = "";
+        // this.peerConnectionToChosenPeer = undefined;
+        this.isInitiator = false;
         UiElementHandler.getAllUiElements();
         this.addUiListeners();
         this.addWsEventListeners();
-        this.addRtcConnectionListeners();
+    }
+
+    public connectToUser = () => {
+        this.isInitiator = true;
+        this.initiatiorChannel = this.initiateConnection.createDataChannel("initiatorChannel");
+
+        this.initiatiorChannel.addEventListener("open", handleInitiatorChannelStatusChange);
+        this.initiatiorChannel.addEventListener("close", handleInitiatorChannelStatusChange);
     }
 
     public addUiListeners = (): void => {
         UiElementHandler.getAllUiElements();
-        console.log(UiElementHandler.loginButton);
-        UiElementHandler.loginButton.addEventListener("click", this.loginLogic);
+        UiElementHandler.connectToUserButton.addEventListener("click", this.connectToUser);
+
+        // UiElementHandler.loginButton.addEventListener("click", this.loginLogic);
         //TODO
-        // UiElementHandler.connectToUserButton.addEventListener("click", this.connectToUser);
+        //  UiElementHandler.connectToUserButton.addEventListener("click", this.connectToUser);
         // UiElementHandler.sendMsgButton.addEventListener("click", this.sendMessageToUser);
     }
     public addWsEventListeners = (): void => {
@@ -69,41 +88,64 @@ export class NetworkConnectionManager {
         });
     }
 
-    public addRtcConnectionListeners = () => {
-        this.connection.addEventListener("icecandidate", ({candidate}) => this.sendMessage({candidate}));
+    public parseMessageAndCallCorrespondingMessageHandler(_message: MessageEvent) {
+        let parsedMessage = this.parseReceivedMessageAndReturnObject(_message);
 
-        this.connection.addEventListener("negotiationneeded", async () => {
-            try {
-                await this.connection.setLocalDescription(await this.connection.createOffer());
-                this.sendMessage({desc: this.connection.localDescription});
-            } catch (err) {
-                console.error(err);
-            }
-        });
-    }
-
-    public parseMessageAndCallCorrespondingMessageHandler = (_receivedMessage: MessageEvent) => {
-
-        // tslint:disable-next-line: typedef
-        let objectifiedMessage = this.parseReceivedMessageAndReturnObject(_receivedMessage);
-
-        switch (objectifiedMessage.messageType) {
-            case TYPES.MESSAGE_TYPE.LOGIN_RESPONSE:
-                console.log("LOGIN SUCCESS", objectifiedMessage.loginSuccess);
-                this.loginValidAddUser(objectifiedMessage.originatorId, objectifiedMessage.loginSuccess);
+        switch (parsedMessage.messageType) {
+            case TYPES.MESSAGE_TYPE.ICE_CANDIDATE:
+                if (this.isInitiator) {
+                        this.initiateConnection.addIceCandidate(parsedMessage.candidate);
+                    } else {
+                        this.receiverConnection.addIceCandidate(parsedMessage.candidate);
+                    }
                 break;
-            
-            // case TYPES.MESSAGE_TYPE.RTC_OFFER:
-            //     this.setDescriptionOnOfferAndSendAnswer(objectifiedMessage.clientId, objectifiedMessage.offer, objectifiedMessage.userNameToConnectTo);
-            //     break;
-            // case TYPES.MESSAGE_TYPE.RTC_ANSWER:
-            //     this.setDescriptionAsAnswer(objectifiedMessage.clientId, objectifiedMessage.answer);
-            //     break;
-            // case TYPES.MESSAGE_TYPE.ICE_CANDIDATE:
-            //     this.handleCandidate(objectifiedMessage.clientId, objectifiedMessage.candidate);
-            //     break;
         }
     }
+
+
+    // public startConnecting(_isInitiator: boolean) {
+    //     this.peerConnectionToChosenPeer = new RTCPeerConnection(this.configuration);
+
+    //     // send any ice candidates to the other peer
+    //     this.peerConnectionToChosenPeer.onicecandidate = (candidate: any) => {
+    //         this.sendMessage(candidate);
+    //     };
+
+    //     // let the "negotiationneeded" event trigger offer generation
+    //     this.peerConnectionToChosenPeer.onnegotiationneeded = async () => {
+    //         try {
+    //             await this.peerConnectionToChosenPeer.setLocalDescription(await this.peerConnectionToChosenPeer.createOffer());
+    //             // send the offer to the other peer
+    //             this.sendMessage({ desc: this.peerConnectionToChosenPeer.localDescription });
+    //         } catch (err) {
+    //             console.error(err);
+    //         }
+    //     };
+
+    //     if (this.isInitiator) {
+    //         // create data channel and setup chat
+    //         this.datachannel = this.connection.createDataChannel("chat");
+    //         this.setupChat();
+    //     } else {
+    //         // setup chat on incoming data channel
+    //         this.connection.ondatachannel = (event) => {
+    //             this.datachannel = event.channel;
+    //             this.setupChat();
+    //         };
+    //     }
+    // }
+
+    // public setupChat = () => {
+    //     if (!this.datachannel)
+    //         return;
+        
+    //     this.datachannel.addEventListener("open", () => { console.log("Peerconnectin open"); });
+
+    //     this.datachannel.addEventListener("message", (messageEvent) => {
+    //         console.log("Received message: " + messageEvent.data);
+    //         UiElementHandler.chatbox.innerHTML += "\n" + this.userNameLocalIsConnectedTo + ": " + messageEvent.data;
+    //     });
+    // }
 
     public parseReceivedMessageAndReturnObject = (_receivedMessage: MessageEvent): any => {
         console.log("Got message", _receivedMessage);
@@ -126,7 +168,7 @@ export class NetworkConnectionManager {
 
     public loginValidAddUser = (_assignedId: string, _loginSuccess: boolean): void => {
         if (_loginSuccess) {
-            this.localClientId = _assignedId;
+            // this.localClientId = _assignedId;
             // this.createRTCConnection();
             console.log("COnnection at Login: " + this.localClientId + " ", this.connection);
         } else {
@@ -150,42 +192,6 @@ export class NetworkConnectionManager {
     }
 
 
-    public connectToUser = (): void => {
-
-        const callToUsername: string = UiElementHandler.usernameToConnectTo.value;
-        if (callToUsername.length === 0) {
-            alert("Enter a username 😉");
-            return;
-        }
-
-        this.userNameLocalIsConnectedTo = callToUsername;
-        this.createRtcOffer(this.userNameLocalIsConnectedTo);
-
-    }
-
-    public createRtcOffer = (_userNameForOffer: string): void => {
-
-        this.connection.createOffer().then((offer) => {
-            return this.connection.setLocalDescription(offer);
-        }).then(() => {
-            const offerMessage: NetworkMessages.RtcOffer = new NetworkMessages.RtcOffer(this.localClientId, _userNameForOffer, this.connection.localDescription);
-            this.sendMessage(offerMessage);
-        })
-            .catch(() => {
-                console.error("Offer creation error");
-            });
-        // this.connection.createOffer(
-        //     (offer: RTCSessionDescriptionInit) => {
-        //         const offerMessage = new MessageOffer(userNameForOffer, offer);
-        //         this.connection.setLocalDescription(offer);
-        //         this.sendMessage(offerMessage);
-        //     },
-        //     (error) => {
-        //         alert("Error when creating an offer");
-        //         console.error(error);
-        //     },
-        // );
-    }
 
 
 
